@@ -1,9 +1,7 @@
 mod cell;
 mod grid;
-mod types;
 
 use crate::grid::Grid;
-use crate::types::Point;
 use clap::{App, Arg};
 
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
@@ -84,19 +82,19 @@ impl MainState {
         // Initialize the grid based on configuration
         let mut grid = Grid::new(config.grid_width, config.grid_height);
         // Initialize starting configuration
-        let mut start_cells_coords: Vec<Point> = vec![];
+        let mut start_cells_coords: Vec<(usize, usize)> = vec![];
         match &config.initial_state[..] {
             "glider-gun" => {
-                start_cells_coords = GLIDER_GUN.iter().map(|&p| p.into()).collect::<Vec<Point>>();
+                start_cells_coords = GLIDER_GUN.iter().map(|&p| p.into()).collect::<Vec<(usize, usize)>>();
             }
             "toad" => {
-                start_cells_coords = TOAD.iter().map(|&p| p.into()).collect::<Vec<Point>>();
+                start_cells_coords = TOAD.iter().map(|&p| p.into()).collect::<Vec<(usize, usize)>>();
             }
             "glider" => {
-                start_cells_coords = GLIDER.iter().map(|&p| p.into()).collect::<Vec<Point>>();
+                start_cells_coords = GLIDER.iter().map(|&p| p.into()).collect::<Vec<(usize, usize)>>();
             }
             "blinker" => {
-                start_cells_coords = BLINKER.iter().map(|&p| p.into()).collect::<Vec<Point>>();
+                start_cells_coords = BLINKER.iter().map(|&p| p.into()).collect::<Vec<(usize, usize)>>();
             }
             _ => {
                 let mut rng = rand::thread_rng();
@@ -187,12 +185,12 @@ impl EventHandler for MainState {
                     color = graphics::Color::new(200., 200., 0., 1.); // Yellow
                 }
             
-                let pos = self.grid.index_to_coords(idx);
+                let (x, y) = self.grid.index_to_coords(idx);
                 builder.rectangle(
                     graphics::DrawMode::fill(),
                     graphics::Rect::new(
-                        pos.x as f32 * self.config.cell_size,
-                        pos.y as f32 * self.config.cell_size,
+                        x as f32 * self.config.cell_size,
+                        y as f32 * self.config.cell_size,
                         self.config.cell_size,
                         self.config.cell_size,
                     ),
@@ -204,12 +202,12 @@ impl EventHandler for MainState {
         if GRID {
             for idx in 0..self.grid.cells.len() {
                 let color = graphics::Color::new(10., 10., 10., 1.); // ?
-                let pos = self.grid.index_to_coords(idx);
+                let (x, y) = self.grid.index_to_coords(idx);
                 builder.rectangle(
                     graphics::DrawMode::stroke(1.),
                     graphics::Rect::new(
-                        pos.x as f32 * self.config.cell_size,
-                        pos.y as f32 * self.config.cell_size,
+                        x as f32 * self.config.cell_size,
+                        y as f32 * self.config.cell_size,
                         self.config.cell_size,
                         self.config.cell_size,
                     ),
@@ -255,15 +253,13 @@ impl EventHandler for MainState {
             let (grid_x, grid_y) = self.pixel_to_grid(x, y);
             println!("Clicked grid tile: ({}, {})", grid_x, grid_y);
 
-            let grid_coords = Point::from((grid_x, grid_y));
-
             let mut superior_race = true;
             match alive {
                 0..10 => superior_race = true,
                 10..20 => superior_race = false,
                 20.. => self.paused = false, 
             }
-            self.grid.set_state(&vec![grid_coords], false, superior_race);
+            self.grid.set_state(&vec![(grid_x, grid_y)], false, superior_race);
 
             let (alive, num_superior_race, num_other_race) = self.cell_tracking();
             println!("alive: {alive}, superior_race: {num_superior_race}, other_race: {num_other_race}");
