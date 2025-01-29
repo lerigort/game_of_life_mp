@@ -1,12 +1,15 @@
 mod cell;
 mod grid;
+mod race;
 
 use crate::grid::Grid;
 use clap::{App, Arg};
 
+use race::RaceType;
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
 use ggez::graphics;
 use ggez::{Context, ContextBuilder, GameResult};
+use race::Race;
 use rand::Rng;
 
 const GRID: bool = false;
@@ -108,7 +111,7 @@ impl MainState {
             }
         }
         // Convert the starting states into a vector of points
-        grid.set_state(&start_cells_coords, true, true); // creates a filed of dead cellz
+        grid.set_state(&start_cells_coords, true, None); // creates a filed of dead cellz
         MainState {
             paused: true, 
             grid,
@@ -139,7 +142,7 @@ impl MainState {
         let mut superior_race = 0;
         let mut other_race = 0;
         for cell in &self.grid.cells {
-            if cell.is_alive() && cell.is_race_superior() {
+            if cell.is_alive() && cell.get_race() == Some(RaceType::Superior) {
                 superior_race += 1
             }
             else if cell.is_alive() {
@@ -181,7 +184,7 @@ impl EventHandler for MainState {
         for (idx, cell) in self.grid.cells.iter().enumerate() {
             if cell.is_alive() {
                 let mut color = graphics::Color::new(0., 200., 0., 1.); // Green
-                if !cell.is_race_superior() {
+                if cell.get_race() != Some(RaceType::Superior) {
                     color = graphics::Color::new(200., 200., 0., 1.); // Yellow
                 }
             
@@ -253,13 +256,13 @@ impl EventHandler for MainState {
             let (grid_x, grid_y) = self.pixel_to_grid(x, y);
             println!("Clicked grid tile: ({}, {})", grid_x, grid_y);
 
-            let mut superior_race = true;
+            let mut race_type = None;
             match alive {
-                0..10 => superior_race = true,
-                10..20 => superior_race = false,
-                20.. => self.paused = false, 
+                0..10 => race_type = Some(RaceType::Superior),
+                10..20 => race_type =  Some(RaceType::Indoctrination),
+                20.. => {} // do nothing
             }
-            self.grid.set_state(&vec![(grid_x, grid_y)], false, superior_race);
+            self.grid.set_state(&vec![(grid_x, grid_y)], false, race_type);
 
             let (alive, num_superior_race, num_other_race) = self.cell_tracking();
             println!("alive: {alive}, superior_race: {num_superior_race}, other_race: {num_other_race}");

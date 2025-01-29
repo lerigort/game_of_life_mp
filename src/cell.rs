@@ -1,24 +1,24 @@
-
+use crate::race::RaceType;
 
 // Structs and Implementations
 #[derive(Clone, Debug)]
 pub struct Cell {
     alive: bool,
-    race: bool,
+    race_type: Option<RaceType>,
 }
 
 impl Cell {
-    pub fn new(alive: bool, race: bool) -> Self {
-        Self { alive, race }
+    pub fn new(alive: bool, race_type: Option<RaceType>) -> Self {
+        Self { alive, race_type }
     }
     pub fn is_alive(&self) -> bool {
         self.alive
     }
-    pub fn is_race_superior(&self) -> bool {
-        self.race
+    pub fn get_race(&self) -> Option<RaceType> {
+        self.race_type
     }
-    pub fn set_state(&mut self, state: bool, race: bool){
+    pub fn set_state(&mut self, state: bool, race_type: Option<RaceType>){
         self.alive = state;
-        self.race = race;
+        self.race_type = race_type;
     }
 }

@@ -1,7 +1,6 @@
 use std::usize;
 
-use crate::cell::Cell;
-use rand::Rng;
+use crate::{cell::Cell, race::{Race, RaceType}};
 use rayon::prelude::*;
 
 pub struct Grid {
@@ -16,22 +15,22 @@ impl Grid {
         Self {
             width,
             height,
-            cells: vec![Cell::new(false, false); width * height],
+            cells: vec![Cell::new(false, None); width * height],
         }
     }
     
-    pub fn set_state(&mut self, cells_coords: &[(usize, usize)], is_init: bool, is_superior_race: bool) {
+    pub fn set_state(&mut self, cells_coords: &[(usize, usize)], is_init: bool, race_type: Option<RaceType>) {
         if is_init {
             // at first iteration creates a field of dead cells
-            self.cells = vec![Cell::new(false, false); self.width * self.height];
+            self.cells = vec![Cell::new(false, None); self.width * self.height];
         }
         for &pos in cells_coords.iter() {
             let idx = self.coords_to_index(pos);
-            self.cells[idx].set_state(true, is_superior_race);
+            self.cells[idx].set_state(true, race_type);
         }
     }
 
-    fn cell_next_state(&self, cell_idx: usize) -> (bool, bool) {
+    fn cell_next_state(&self, cell_idx: usize) -> (bool, Option<RaceType>) {
         let cell = self.cells[cell_idx].clone();
         let (cell_x, cell_y) = self.index_to_coords(cell_idx);
         // Check boundaries and add neighgours
@@ -55,7 +54,7 @@ impl Grid {
                     self.coords_to_index((neighbour_x as usize, neighbour_y as usize));
                 if self.cells[idx].is_alive() {
                     num_neighbour_alive += 1;
-                    if self.cells[idx].is_race_superior() {
+                    if self.cells[idx].get_race() == Some(RaceType::Superior) {
                         num_superior_race += 1;
                     }
                 }
@@ -64,15 +63,16 @@ impl Grid {
 
         // Rules (from wikipedia)
         if cell.is_alive() && (num_neighbour_alive == 2 || num_neighbour_alive == 3) {
-            return (true, cell.is_race_superior()); // alive, same race
+            return (true, cell.get_race()); // alive, same race
         }
+
         if !cell.is_alive() && num_neighbour_alive == 3 {
             if num_superior_race >= 2 {
-                return (true, true); // alive, superior race
+                return (true, Some(RaceType::Superior)); // alive, superior race
             }
-            return (true, false); // alive.
+            return (true, Some(RaceType::Indoctrination)); // alive.
         }
-        (false, false) // hes DEAAAAD
+        (false, None)
     }
 
     pub fn update(&mut self) {
@@ -90,7 +90,7 @@ impl Grid {
                 // next state
                 self.cell_next_state(idx)
             })
-            .collect::<Vec<(bool, bool)>>();
+            .collect::<Vec<(bool, Option<RaceType>)>>();
 
         // Update states
         // for idx in 0..self.cells.len() {
