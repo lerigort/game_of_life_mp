@@ -18,6 +18,30 @@ impl Grid {
             cells: vec![Cell::new(false, None); width * height],
         }
     }
+
+    pub fn get_neighbor_coords(&self, idx: usize) -> Vec<(usize, usize)> {
+        let mut neighbors_idx = Vec::new();
+        let (x, y) = self.index_to_coords(idx);
+
+        let neighbor_offsets = [
+            (-1, 1), (0, 1), (1, 1),
+            (-1, 0),         (1, 0),
+            (-1, -1), (0, -1), (1, -1),
+        ];
+    
+        for (x_shift, y_shift) in neighbor_offsets.iter() {
+            let x_neigh = x as isize + x_shift;
+            let y_neigh = y as isize + y_shift;
+    
+            if x_neigh >= 0 && (x_neigh as usize) < self.width &&
+               y_neigh >= 0 && (y_neigh as usize) < self.height {
+                neighbors_idx.push((x_neigh as usize, y_neigh as usize));
+            }
+        }
+    
+        neighbors_idx
+    }
+    
     
     pub fn set_state(&mut self, cells_coords: &[(usize, usize)], is_init: bool, race_type: Option<RaceType>) {
         if is_init {
@@ -33,6 +57,7 @@ impl Grid {
     fn cell_next_state(&self, cell_idx: usize) -> (bool, Option<RaceType>) {
         let cell = self.cells[cell_idx].clone();
         let (cell_x, cell_y) = self.index_to_coords(cell_idx);
+                
         // Check boundaries and add neighgours
         let mut num_neighbour_alive = 0;
         let mut num_superior_race = 0;
@@ -102,6 +127,7 @@ impl Grid {
             .collect::<Vec<Cell>>();
     }
     /// Converts a pair of cell coords to index in the cells vector
+    
     pub fn coords_to_index(&self, (x, y): (usize, usize)) -> usize {
         return y * self.width + x
     }

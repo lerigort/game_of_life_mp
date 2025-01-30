@@ -1,7 +1,7 @@
 use crate::race::RaceType;
 
 // Structs and Implementations
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Cell {
     alive: bool,
     race_type: Option<RaceType>,

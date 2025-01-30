@@ -7,7 +7,7 @@ use clap::{App, Arg};
 
 use race::RaceType;
 use ggez::event::{self, EventHandler, KeyCode, KeyMods, MouseButton};
-use ggez::graphics;
+use ggez::graphics::{self, Color};
 use ggez::{Context, ContextBuilder, GameResult};
 use race::Race;
 use rand::Rng;
@@ -63,7 +63,6 @@ const GLIDER_GUN: [(usize, usize); 36] = [
 ];
 
 /// Config for the start of the game
-#[derive(Debug, Clone)]
 pub struct Config {
     pub grid_width: usize,
     pub grid_height: usize,
@@ -71,6 +70,7 @@ pub struct Config {
     pub screen_size: (f32, f32),
     pub fps: u32,
     pub initial_state: String,
+    pub races: Vec<Race>,
 }
 
 struct MainState {
@@ -99,17 +99,19 @@ impl MainState {
             "blinker" => {
                 start_cells_coords = BLINKER.iter().map(|&p| p.into()).collect::<Vec<(usize, usize)>>();
             }
-            _ => {
+            "random" => {
                 let mut rng = rand::thread_rng();
                 for i in 0..config.grid_width{
                     for j in 0..config.grid_height{
                         if rng.gen_range(0..100) < 10 {
-                            // start_cells_coords.push((i, j).into());
+                            start_cells_coords.push((i, j).into());
                         }
                     }
                 }
             }
+            _ => {} // manual setting, no init cells
         }
+
         // Convert the starting states into a vector of points
         grid.set_state(&start_cells_coords, true, None); // creates a filed of dead cellz
         MainState {
@@ -299,11 +301,31 @@ fn main() -> GameResult {
             Arg::with_name("initial_state")
                 .short("s")
                 .long("initial-state")
-                .help("Initial state options: blinker, toad, glider, glider-gun, random")
+                .help("Initial state options: blinker, toad, glider, glider-gun, random, set")
                 .value_name("initial_state")
                 .takes_value(true)
                 .required(false)
                 .default_value("random"),
+        )
+        .arg(
+            Arg::with_name("race_1")
+                .short("r")
+                .long("race_1")
+                .help("Race options: Superior, Indoctrination, Necrodancer")
+                .value_name("race_1")
+                .takes_value(true)
+                .required(false)
+                .default_value("Superior"),
+        )
+        .arg(
+            Arg::with_name("race_2")
+                .short("u")
+                .long("race_2")
+                .help("Race options: Superior, Indoctrination, Necrodancer")
+                .value_name("race_2")
+                .takes_value(true)
+                .required(false)
+                .default_value("Indoctrination"),
         )
         .get_matches();
 
@@ -315,8 +337,23 @@ fn main() -> GameResult {
         .parse::<usize>()
         .unwrap();
     let initial_state = matches.value_of("initial_state").unwrap();
+    let race_1 = matches.value_of("race_1").unwrap();
+    let race_2 = matches.value_of("race_2").unwrap();
     let screen_size = (720., 720.);
     let fps = 10;
+
+    // Set race from config
+    let mut races = vec![];
+    //create races
+    for race in [race_1, race_2] {
+        match race {
+            "Superior" => races.push(Race::create_superior()),
+            "Indoctrination" => races.push(Race::create_indoctrinator()),
+            "Necrodancer" => todo!(),
+            _ => races.push(Race::create_superior()), // in case of typo
+        }
+    }
+
     // Set configuration
     let config: Config = Config {
         grid_width,
@@ -324,6 +361,7 @@ fn main() -> GameResult {
         cell_size: screen_size.0 / grid_width as f32,
         screen_size,
         fps,
+        races,
         initial_state: initial_state.to_string(),
     };
 
